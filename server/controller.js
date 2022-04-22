@@ -1,8 +1,8 @@
 require('dotenv').config()
-const req = require('express/lib/request')
-const Sequelize = require('sequelize')
 
 const {CONNECTION_STRING} = process.env
+
+const Sequelize = require('sequelize')
 
 const sequelize = new Sequelize(CONNECTION_STRING, {
     dialect: 'postgres',
@@ -21,14 +21,14 @@ module.exports = {
 
             CREATE TABLE countries(
                 country_id serial primary key, 
-                country_name varchar
+                name VARCHAR (30) NOT NULL
             );
 
            CREATE TABLE cities(
             city_id SERIAL PRIMARY KEY,
-            city_name VARCHAR (30) NOT NULL,
-            city_rating INTEGER,
-            country_id INTEGER   
+            name VARCHAR (30) NOT NULL,
+            rating INTEGER,
+            country_id INTEGER NOT NULL REFERENCES countries(country_id)
            );
 
             INSERT INTO countries(name)
@@ -235,18 +235,18 @@ module.exports = {
 
     getCountries: (req,res) => {
         sequelize.query(`
-        SELECT * FROM countries(names);
+        SELECT * FROM countries;
         `)
         .then(dbRes => res.status(200).send(dbRes[0]))
         .catch(err => console.log(err))
     },
 
     createCity: (req, res) => {
-        let {cityId} = req.body
+        let {name, rating, countryId} = req.body
 
         sequelize.query(`
-        INSERT INTO city
-        values ('${city_name}', '${rating}', '${countryId}');
+        INSERT INTO cities (name, rating, country_id)
+        VALUES ('${name}', ${rating}, ${countryId});
         `)
         .then(dbRes => res.status(200).send(dbRes[0]))
         .catch(err => console.log(err))
@@ -254,22 +254,25 @@ module.exports = {
 
     getCities: (req, res) => {
       sequelize.query(`
-      SELECT city_id, city_name, city_rating
-      FROM cities
-      JOIN countries
-      ON country_id = city_id;
+      SELECT ci.city_id, ci.name AS city, ci.rating, co.country_id, co.name AS country
+      FROM cities ci
+      JOIN countries co
+      ON co.country_id = ci.country_id
+      ORDER BY ci.rating DESC;
       `)  
       .then(dbRes => res.status(200).send(dbRes[0]))
       .catch(err => console.log(err))
     },
 
     deleteCity: (req, res) => {
-        let {cityId} = req.params
+        let {id} = req.params
         sequelize.query(`
         DELETE 
         FROM cities
-        WHERE city_id = cities;
+        WHERE city_id = ${id};
         `)
+        .then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => console.log(err))
     }
 
 
